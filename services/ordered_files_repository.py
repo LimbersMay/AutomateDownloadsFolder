@@ -1,21 +1,23 @@
+import datetime
 import json
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
+from datetime import datetime
 
 from entities.ordered_file import OrderedFile
 
 
 class OrderedFilesRepository(ABC):
     @abstractmethod
-    def get_ordered_files(self):
+    def get_ordered_files(self) -> List[OrderedFile]:
         pass
 
     @abstractmethod
-    def get_files_to_delete(self):
+    def get_files_to_delete(self, days_to_keep: int) -> List[OrderedFile]:
         pass
 
     @abstractmethod
-    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]):
+    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
         pass
 
 
@@ -24,21 +26,45 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
         self.json_file_path = json_file_path
 
     def get_ordered_files(self) -> List[OrderedFile]:
-
         with open(self.json_file_path, 'r') as json_file:
             json_data = json.load(json_file)["orderedFiles"]
 
-            def get_ordered_file(item):
-                name, ordered_date = item
-                return OrderedFile(name, ordered_date)
+            ordered_files = []
 
-            new_list = list(map(get_ordered_file, json_data.items()))
+            # map from the objects {{name: date}, ...} -> OrderedFile object
+            for fileObject in json_data:
+                name = fileObject["name"]
+                ordered_date = fileObject["ordered_date"]
 
-        return new_list
+                ordered_date = datetime.strptime(ordered_date, "%Y-%m-%d").date()
+                ordered_files.append(OrderedFile(name, ordered_date))
 
+            return ordered_files
 
-    def get_files_to_delete(self):
-        pass
+    def get_files_to_delete(self, days_to_keep: int) -> List[OrderedFile]:
+        ordered_files = self.get_ordered_files()
+        files_to_delete = []
 
-    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]):
-        pass
+        for ordered_file in ordered_files:
+            current_date = datetime.now()
+            if (current_date - ordered_file.ordered_date).days > days_to_keep:
+                files_to_delete.append(ordered_file)
+
+        return files_to_delete
+
+    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
+        ordered_files = self.get_ordered_files()
+        ordered_files.extend(new_ordered_files)
+
+        # Convert the date objects to the iso format
+        for i in range(len(ordered_files)):
+            ordered_files[i].ordered_date = ordered_files[i].ordered_date.isoformat()
+
+        # load the json data in a file
+        with open(self.json_file_path, "r") as json_file:
+            data = json.load(json_file)
+
+        data["orderedFiles"] = [obj.__dict__ for obj in ordered_files]
+
+        with open(self.json_file_path, "w") as json_file:
+            json_file.write(json.dumps(data, indent=4))
