@@ -1,5 +1,7 @@
+import datetime
+
 
 class OrderedFile:
-    def __init__(self, name, date_ordered):
+    def __init__(self, name: str, ordered_date: datetime.date):
         self.name = name
-        self.date_ordered = date_ordered
+        self.ordered_date = ordered_date
