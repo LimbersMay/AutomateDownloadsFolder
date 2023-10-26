@@ -39,7 +39,7 @@ class JsonSettingsRepository(SettingsRepository):
 
             extensions = []
 
-            # map from the object {"ExtensionName: [list of extensions]", ...} -> list of extensions
+            # map from the object {"ExtensionName: [list of str]", ...} -> list of extensions
             for extension_name, extensions_formats in json_data.items():
                 extensions.append(Extension(extension_name, extensions_formats))
 
