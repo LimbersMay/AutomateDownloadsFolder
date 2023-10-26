@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 
-from entities.Path import Path
+from entities.path import Path
 
 
 class PathRepository(ABC):

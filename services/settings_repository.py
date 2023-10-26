@@ -2,8 +2,8 @@ import json
 from abc import ABC, abstractmethod
 from typing import List
 
-from entities.Extension import Extension
-from entities.Settings import Settings
+from entities.extension import Extension
+from entities.settings import Settings
 
 
 class SettingsRepository(ABC):
