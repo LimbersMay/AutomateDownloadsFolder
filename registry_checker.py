@@ -9,15 +9,18 @@ from entities.ordered_file import OrderedFile
 from services.ordered_files_repository import OrderedFilesRepository
 from services.path_repository import PathRepository
 from services.settings_repository import SettingsRepository
+from services.notification_service import NotificationService
 
 
 class Auditor:
     def __init__(self, path_repository: PathRepository,
                  ordered_files_repository: OrderedFilesRepository,
-                 settings_repository: SettingsRepository):
+                 settings_repository: SettingsRepository,
+                 notificator_service: NotificationService):
         self.__path_repository = path_repository
         self.__ordered_files_repository = ordered_files_repository
         self.__settings_repository = settings_repository
+        self.__notification_service = notificator_service
 
     def check_files(self):
 
@@ -58,3 +61,7 @@ class Auditor:
                 not_registered_files.append(OrderedFile(file, current_date, file_path))
 
         self.__ordered_files_repository.set_new_ordered_files(not_registered_files)
+
+        # 3. Send notification
+        if len(files_to_delete) > 0:
+            self.__notification_service.send_notification(f"{len(files_to_delete)} files were deleted.")
