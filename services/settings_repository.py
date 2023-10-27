@@ -13,7 +13,11 @@ class SettingsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_extensions(self) -> List[str]:
+    def get_extensions(self) -> List[Extension]:
+        pass
+
+    @abstractmethod
+    def find_extension_folder_name(self, extension_to_find: str) -> Extension:
         pass
 
 
@@ -28,7 +32,7 @@ class JsonSettingsRepository(SettingsRepository):
 
             days_to_keep = json_data["daysToKeep"]
             wants_to_send_to_trash = json_data["wantsToSendToTrash"]
-            max_size = json_data["maxSize"]
+            max_size = json_data["maxSizeInMb"] * (1024 * 1024)
             extensions = self.get_extensions()
 
             return Settings(days_to_keep, wants_to_send_to_trash, max_size, extensions)
@@ -44,3 +48,15 @@ class JsonSettingsRepository(SettingsRepository):
                 extensions.append(Extension(extension_name, extensions_formats))
 
             return extensions
+
+    def find_extension_folder_name(self, extension_to_find: str) -> Extension:
+        extensions = self.get_extensions()
+
+        for founded_extensions in extensions:
+            if founded_extensions.extensions.count(extension_to_find) > 0:
+                return founded_extensions
+
+        # If the extension is not found, we return the default extension
+        default_extension = [extension for extension in extensions if len(extension.extensions) == 0][0]
+
+        return default_extension
