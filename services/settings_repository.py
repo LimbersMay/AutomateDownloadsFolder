@@ -31,11 +31,11 @@ class JsonSettingsRepository(SettingsRepository):
             json_data = json.load(json_file)["settings"]
 
             days_to_keep = json_data["daysToKeep"]
-            wants_to_send_to_trash = json_data["wantsToSendToTrash"]
+            send_to_trash = json_data["sendToTrash"]
             max_size = json_data["maxSizeInMb"] * (1024 * 1024)
             extensions = self.get_extensions()
 
-            return Settings(days_to_keep, wants_to_send_to_trash, max_size, extensions)
+            return Settings(days_to_keep, send_to_trash, max_size, extensions)
 
     def get_extensions(self) -> List[Extension]:
         with open(self.json_file_path, "r") as json_file:
