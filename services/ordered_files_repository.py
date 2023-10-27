@@ -20,6 +20,14 @@ class OrderedFilesRepository(ABC):
     def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
         pass
 
+    @abstractmethod
+    def find(self, file_name: str) -> OrderedFile or None:
+        pass
+
+    @abstractmethod
+    def delete(self, file_name: str) -> None:
+        pass
+
 
 class JsonOrderedFilesRepository(OrderedFilesRepository):
     def __init__(self, json_file_path: str):
@@ -35,9 +43,10 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
             for fileObject in json_data:
                 name = fileObject["name"]
                 ordered_date = fileObject["ordered_date"]
+                path = fileObject["path"]
 
                 ordered_date = datetime.strptime(ordered_date, "%Y-%m-%d").date()
-                ordered_files.append(OrderedFile(name, ordered_date))
+                ordered_files.append(OrderedFile(name, ordered_date, path))
 
             return ordered_files
 
@@ -46,7 +55,7 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
         files_to_delete = []
 
         for ordered_file in ordered_files:
-            current_date = datetime.now()
+            current_date = datetime.now().date()
             if (current_date - ordered_file.ordered_date).days > days_to_keep:
                 files_to_delete.append(ordered_file)
 
@@ -65,6 +74,29 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
             data = json.load(json_file)
 
         data["orderedFiles"] = [obj.__dict__ for obj in ordered_files]
+
+        with open(self.json_file_path, "w") as json_file:
+            json_file.write(json.dumps(data, indent=4))
+
+    def find(self, file_name: str) -> OrderedFile or None:
+        ordered_files = self.get_ordered_files()
+
+        for ordered_file in ordered_files:
+            if ordered_file.name == file_name:
+                return ordered_file
+
+        return None
+
+    def delete(self, file_name: str) -> None:
+        with open(self.json_file_path, "r") as json_file:
+            data = json.load(json_file)
+
+            ordered_files = data["orderedFiles"]
+
+            for file in ordered_files:
+                if file["name"] == file_name:
+                    ordered_files.remove(file)
+                    break
 
         with open(self.json_file_path, "w") as json_file:
             json_file.write(json.dumps(data, indent=4))
