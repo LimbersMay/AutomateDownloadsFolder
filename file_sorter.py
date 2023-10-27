@@ -9,18 +9,21 @@ from entities.ordered_file import OrderedFile
 from services.ordered_files_repository import OrderedFilesRepository
 from services.path_repository import PathRepository
 from services.settings_repository import SettingsRepository
+from services.notification_service import NotificationService
 
 
-class FileOrganizer:
+class FileSorter:
     def __init__(self, path_repository: PathRepository,
                  settings_repository: SettingsRepository,
-                 ordered_files_repository: OrderedFilesRepository):
+                 ordered_files_repository: OrderedFilesRepository,
+                 notificator_service: NotificationService):
 
         self.__path_repository = path_repository
         self.__settings_repository = settings_repository
         self.__ordered_files_repository = ordered_files_repository
+        self.__notification_service = notificator_service
 
-    def organize(self):
+    def sort(self):
 
         # Paths
         source_path = self.__path_repository.get_source_path().name
@@ -52,3 +55,7 @@ class FileOrganizer:
 
         # Persist the new ordered files
         self.__ordered_files_repository.set_new_ordered_files(ordered_files)
+
+        # 2. Send notification
+        if len(files_to_organize) > 0:
+            self.__notification_service.send_notification(f"{len(files_to_organize)} files were sorted")
