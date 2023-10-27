@@ -22,12 +22,12 @@ class JsonPathRepository(PathRepository):
 
     def get_source_path(self) -> Path:
         with open(self.json_file_path, "r") as json_file:
-            destination_path = json.load(json_file)["paths"]["destinationPath"]
+            destination_path = json.load(json_file)["paths"]["sourcePath"]
 
             return Path(destination_path)
 
     def get_destination_path(self) -> Path:
         with open(self.json_file_path, "r") as json_file:
-            source_path = json.load(json_file)["paths"]["sourcePath"]
+            source_path = json.load(json_file)["paths"]["destinationPath"]
 
             return Path(source_path)
