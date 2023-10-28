@@ -1,0 +1,84 @@
+{
+    "settings": {
+        "daysToKeep": 2,
+        "sendToTrash": true,
+        "maxSizeInMb": 500
+    },
+    "orderedFiles": [],
+    "paths": {
+        "sourcePath": "/home/limbers/Downloads",
+        "destinationPath": "/home/limbers/Downloads/Organized"
+    },
+    "extensions": {
+        "Word": [
+            ".doc",
+            ".docx",
+            ".dot"
+        ],
+        "PowerPoint": [
+            ".ppt",
+            ".pptx",
+            ".pps",
+            ".pot"
+        ],
+        "Excel": [
+            ".xls",
+            ".xlsx",
+            ".xlsm",
+            ".xlt"
+        ],
+        "Video": [
+            ".avi",
+            ".divx",
+            ".mov",
+            ".mp4",
+            ".mpg",
+            ".mkv",
+            ".wmv",
+            ".wpl"
+        ],
+        "Image": [
+            ".JPEG",
+            ".JPG",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".bmp",
+            ".ico",
+            ".svg",
+            ".webp",
+            ".gif",
+            ".psd",
+            ".heic",
+            ".nef",
+            ".crw",
+            ".ai",
+            ".id"
+        ],
+        "Audio": [
+            ".mp3",
+            ".mid",
+            ".wav",
+            "wma",
+            ".cda",
+            ".ogm",
+            ".acc",
+            ".ac3",
+            ".flac",
+            ".aym"
+        ],
+        "Compressed": [
+            ".zip",
+            ".rar",
+            ".rar5",
+            ".7z",
+            ".ace",
+            ".gz",
+            ".tar.bz2"
+        ],
+        "PDF": [
+            ".pdf"
+        ],
+        "Other": []
+    }
+}
