@@ -106,8 +106,6 @@ The path to the python executable inside the virtual environment is usually `/pa
 For windows, the easiest way to start the script when the computer starts, is to create an exe of the 
 script and put a shortcut of the exe in the startup folder.
 
-There's an exe file in the root 
-
 To create an exe follow the steps below:
 1. Install pyinstaller:
    ```sh
