@@ -35,7 +35,7 @@ class FileSorter:
         with os.scandir(source_path) as it:
             full_paths = [entry.path for entry in it if entry.is_file()]
 
-        # get files to organize based on the user configuration
+        # Get files to organize based on user configuration
         # 1. Sort files if size is greater than the user configuration
         files_to_organize = [file for file in full_paths if os.path.getsize(file) < size_limit]
         ordered_files: List[OrderedFile] = []
