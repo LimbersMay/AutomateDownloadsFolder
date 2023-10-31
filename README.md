@@ -51,7 +51,7 @@ This is not just a simple script, it has a lot of features and settings that you
     pip install -r requirements.txt
     ```
    
-5. Rename the `settings.example.json` file to `settings.json` located in the `data/settings.example.json` folder.
+5. Rename the `settings.example.json` file to `settings.json` located in the `data` folder.
 ## Usage
 There are several ways to use this script, for example:
 * Run the script manually
