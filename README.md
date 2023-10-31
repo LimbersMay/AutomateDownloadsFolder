@@ -36,15 +36,20 @@ This is not just a simple script, it has a lot of features and settings that you
    git clone https://github.com/LimbersMay/AutomateDownloadsFolder.git
    ```
 
-2. Create a virtual environment (optional):
+2. Create a virtual environment (recommended):
    ```sh
    python -m venv venv
    ```
 
-3. Activate the virtual environment (optional):
+3. Activate the virtual environment (Linux):
    ```sh
    source venv/bin/activate
    ```
+   
+    Activate the virtual environment (Windows):
+    ```sh
+    venv\Scripts\activate
+    ```
 
 4. Install the requirements:
    ```sh
@@ -98,11 +103,28 @@ you must use the path to the python executable inside the virtual environment in
 The path to the python executable inside the virtual environment is usually `/path/to/venv/bin/python`.
 
 ### Windows
-1. Open the Run window by pressing the Windows key + R.
+For windows, the easiest way to start the script when the computer starts, is to create an exe of the 
+script and put a shortcut of the exe in the startup folder.
 
-2. Type `shell:startup` and press Enter.
+There's an exe file in the root 
 
-3. Create a shortcut to the script in the folder that opens.
+To create an exe follow the steps below:
+1. Install pyinstaller:
+   ```sh
+   pip install pyinstaller
+   ```
+   
+2. Create the exe:
+   ```sh
+   pyinstaller --noconfirm --onefile --windowed --icon "./assets/work.ico" --hidden-import "plyer.platforms.win.notification"  "./main.py"
+    ```
+   
+3. Move the exe from the `dist` folder to the root folder (where the `main.py` file is located)
+4. Feel free to delete the `build` and `dist` folders and any other file created by pyinstaller
+5. Create a shortcut and copy it
+6. Press `Win + R` and type `shell:startup` to open the startup folder
+7. Paste the shortcut in the startup folder
+8. Restart the computer
 
 ## Settings
 The settings are in the `settings.json` file, located in `data/settings.json`.
