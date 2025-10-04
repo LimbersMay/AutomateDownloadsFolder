@@ -17,7 +17,7 @@ class OrderedFilesRepository(ABC):
         pass
 
     @abstractmethod
-    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
+    def save_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
         pass
 
     @abstractmethod
@@ -61,7 +61,7 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
 
         return files_to_delete
 
-    def set_new_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
+    def save_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
         ordered_files = self.get_ordered_files()
         ordered_files.extend(new_ordered_files)
 

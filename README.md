@@ -17,8 +17,8 @@ In my daily life, I downloaded a lot of files and my Downloads folder was always
 so I decided to start this project.
 
 This is not just a simple script, it has a lot of features and settings that you can customize, like:
-* Move files to folders based on their extensions
-* Create folders based on the extensions found in settings
+* Move files to folders based on clasification rules (extension or regex)
+* Create folders based on the folders found in sorting rules
 * Indicate how many days the files will be kept in the sorted folder before being deleted
 * Decide if you want to delete the files or send them to the trash
 * Set the maximum size of the files that will be moved
@@ -128,7 +128,10 @@ To create an exe follow the steps below:
 The settings are in the `settings.json` file, located in `data/settings.json`.
 
 These settings are:
-* `extensions`: List of extensions that will be used to create the folders and move the files.
+* `sortingRules`: List of rules that will be used to move the files to the sorted folder. Each rule has the following properties:
+  * `folderName`: Name of the folder where the files will be moved.
+  * `matchBy`: Property that indicates if the rule will match by `extension` or `regex`.
+  * `patterns`: List of extensions or regex patterns that will be used to match the files.
 * `daysToKeep`: Number of days that the files will be kept in the sorted folder before being deleted.
 * `sendToTrash`: If `true`, the files will be sent to the trash. If `false`, the files will be deleted from the system.
 * `maxSizeInMb`: Maximum size of the files that will be moved to the sorted folder.
