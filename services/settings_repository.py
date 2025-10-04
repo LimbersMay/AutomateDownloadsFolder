@@ -2,8 +2,8 @@ import json
 from abc import ABC, abstractmethod
 from typing import List
 
-from entities.extension import Extension
 from entities.settings import Settings
+from entities.sorting_rule import SortingRule
 
 
 class SettingsRepository(ABC):
@@ -13,11 +13,11 @@ class SettingsRepository(ABC):
         pass
 
     @abstractmethod
-    def get_extensions(self) -> List[Extension]:
+    def get_sorting_rules(self) -> List[SortingRule]:
         pass
 
     @abstractmethod
-    def find_extension_folder_name(self, extension_to_find: str) -> Extension:
+    def get_default_folder(self) -> str:
         pass
 
 
@@ -33,30 +33,26 @@ class JsonSettingsRepository(SettingsRepository):
             days_to_keep = json_data["daysToKeep"]
             send_to_trash = json_data["sendToTrash"]
             max_size = json_data["maxSizeInMb"] * (1024 * 1024)
-            extensions = self.get_extensions()
+            sorting_rules = self.get_sorting_rules()
 
-            return Settings(days_to_keep, send_to_trash, max_size, extensions)
+            return Settings(days_to_keep, send_to_trash, max_size, sorting_rules)
 
-    def get_extensions(self) -> List[Extension]:
+    def get_sorting_rules(self) -> List[SortingRule]:
         with open(self.json_file_path, "r") as json_file:
-            json_data = json.load(json_file)["extensions"]
+            json_data = json.load(json_file)["sortingRules"]
 
-            extensions = []
+            sorting_rules = []
 
-            # map from the object {"ExtensionName: [list of str]", ...} -> list of extensions
-            for extension_name, extensions_formats in json_data.items():
-                extensions.append(Extension(extension_name, extensions_formats))
+            for sorting_rule in json_data:
+                folder_name = sorting_rule["folderName"]
+                match_by = sorting_rule["matchBy"]
+                patterns = sorting_rule["patterns"]
 
-            return extensions
+                sorting_rules.append(SortingRule(folder_name, match_by, patterns))
 
-    def find_extension_folder_name(self, extension_to_find: str) -> Extension:
-        extensions = self.get_extensions()
+        return sorting_rules
 
-        for founded_extensions in extensions:
-            if founded_extensions.extensions.count(extension_to_find) > 0:
-                return founded_extensions
-
-        # If the extension is not found, we return the default extension
-        default_extension = [extension for extension in extensions if len(extension.extensions) == 0][0]
-
-        return default_extension
+    def get_default_folder(self) -> str:
+        with open(self.json_file_path, "r") as json_file:
+            json_data = json.load(json_file)["defaultFolder"]
+            return json_data

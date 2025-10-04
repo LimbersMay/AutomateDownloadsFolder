@@ -11,7 +11,7 @@ class DirectoryCreator:
 
     def execute(self) -> None:
         destination_path = self.__path_repository.get_destination_path().name
-        extensions = self.__settings_repository.get_extensions()
+        sorting_rules = self.__settings_repository.get_sorting_rules()
 
-        for extension in extensions:
-            os.makedirs(os.path.join(destination_path, extension.name), exist_ok=True)
+        for rule in sorting_rules:
+            os.makedirs(os.path.join(destination_path, rule.folder_name), exist_ok=True)

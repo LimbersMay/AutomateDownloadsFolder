@@ -60,7 +60,7 @@ class Auditor:
             if not self.__ordered_files_repository.find(file):
                 not_registered_files.append(OrderedFile(file, current_date, file_path))
 
-        self.__ordered_files_repository.set_new_ordered_files(not_registered_files)
+        self.__ordered_files_repository.save_ordered_files(not_registered_files)
 
         # 3. Send notification
         if len(files_to_delete) > 0:
