@@ -2,14 +2,14 @@ import json
 from abc import ABC, abstractmethod
 from typing import List
 
-from entities.settings import Settings
-from entities.sorting_rule import SortingRule
+from models.app_config import AppConfig
+from models.models import FolderSortingRule, GlobalSettings, SortingRule
 
 
 class SettingsRepository(ABC):
 
     @abstractmethod
-    def get_settings(self) -> Settings:
+    def get_settings(self) -> GlobalSettings:
         pass
 
     @abstractmethod
@@ -20,39 +20,37 @@ class SettingsRepository(ABC):
     def get_default_folder(self) -> str:
         pass
 
+    @abstractmethod
+    def get_folder_rules(self) -> List[FolderSortingRule]:
+        pass
 
-class JsonSettingsRepository(SettingsRepository):
+    @abstractmethod
+    def get_default_folder_action(self) -> str:
+        pass
 
-    def __init__(self, json_file_path: str):
-        self.json_file_path = json_file_path
+    @abstractmethod
+    def get_app_config(self) -> AppConfig:
+        pass
 
-    def get_settings(self) -> Settings:
-        with open(self.json_file_path, "r") as json_file:
-            json_data = json.load(json_file)["settings"]
+class ConfigSettingsRepository(SettingsRepository):
 
-            days_to_keep = json_data["daysToKeep"]
-            send_to_trash = json_data["sendToTrash"]
-            max_size = json_data["maxSizeInMb"] * (1024 * 1024)
-            sorting_rules = self.get_sorting_rules()
+    def __init__(self, config: AppConfig):
+        self.__config = config
 
-            return Settings(days_to_keep, send_to_trash, max_size, sorting_rules)
+    def get_settings(self) -> GlobalSettings:
+        return self.__config.settings
 
     def get_sorting_rules(self) -> List[SortingRule]:
-        with open(self.json_file_path, "r") as json_file:
-            json_data = json.load(json_file)["sortingRules"]
-
-            sorting_rules = []
-
-            for sorting_rule in json_data:
-                folder_name = sorting_rule["folderName"]
-                match_by = sorting_rule["matchBy"]
-                patterns = sorting_rule["patterns"]
-
-                sorting_rules.append(SortingRule(folder_name, match_by, patterns))
-
-        return sorting_rules
+        return self.__config.sorting_rules
 
     def get_default_folder(self) -> str:
-        with open(self.json_file_path, "r") as json_file:
-            json_data = json.load(json_file)["defaultFolder"]
-            return json_data
+        return self.__config.default_folder
+
+    def get_folder_rules(self) -> List[FolderSortingRule]:
+        return self.__config.folder_rules
+
+    def get_default_folder_action(self) -> str:
+        return self.__config.default_folder_action
+
+    def get_app_config(self) -> AppConfig:
+        return self.__config

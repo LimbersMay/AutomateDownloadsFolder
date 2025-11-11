@@ -1,11 +1,13 @@
 import glob
 import os
+import shutil
 from datetime import datetime
+from pathlib import Path
 from typing import List
 
 from send2trash import send2trash
 
-from entities.ordered_file import OrderedFile
+from models.models import OrderedFile
 from services.ordered_files_repository import OrderedFilesRepository
 from services.path_repository import PathRepository
 from services.settings_repository import SettingsRepository
@@ -22,46 +24,108 @@ class Auditor:
         self.__settings_repository = settings_repository
         self.__notification_service = notificator_service
 
+        self.__default_folder_name = self.__settings_repository.get_default_folder()
+
+        self.__build_policy_map()
+
+    def __build_policy_map(self):
+        """Create a mapping of rule names to their lifecycle policies."""
+        self.__policy_map = {}
+
+        config = self.__settings_repository.get_app_config()
+
+        # 1. Load policy rules of files
+        for rule in config.sorting_rules:
+            if rule.lifecycle:
+                self.__policy_map[rule.folder_name] = rule.lifecycle
+
+        # 2. Load folder policy rules
+        for rule in config.folder_rules:
+            if rule.lifecycle:
+                self.__policy_map[rule.ruleName] = rule.lifecycle
+
+        # 3. Load default policy
+        self.__default_policy = config.default_lifecycle
+
+        # 4. Policy for "Other"
+        self.__policy_map[config.default_folder] = self.__default_policy
+
+
     def check_files(self):
+        """"
+        Check the files in the destination path against the lifecycle policies. Delete files that exceed the retention period and register new files.
+        1. Check the files which exceed the limit days
+        2. Register the files which are not registered in the database
+        3. Send notification
+        """
 
         # Paths
-        destination_path = self.__path_repository.get_destination_path().name
+        destination_path = self.__path_repository.get_destination_path()
 
-        # Settings
-        limit_days = self.__settings_repository.get_settings().days_to_keep
-        send_to_trash = self.__settings_repository.get_settings().send_to_trash
+        items_deleted_count = 0
+        items_to_remote_from_registry = []
+        all_registered_items = self.__ordered_files_repository.get_ordered_files()
 
-        # 1. Check the files which exceed the limit days
-        files_to_delete = self.__ordered_files_repository.get_files_to_delete(limit_days)
+        # Create a map of registered paths for quick lookup
+        registered_paths_map = {item.path: item for item in all_registered_items}
 
-        for file_to_delete in files_to_delete:
+        # Process registered items first
+        for item in all_registered_items:
+            item_path = Path(item.path)
 
-            # If the file registered in the database does not exist, we delete it from the DB and continue
-            if not os.path.exists(file_to_delete.path):
-                self.__ordered_files_repository.delete(file_to_delete.name)
+            # 1.1 Check if the file still exists
+            if not item_path.exists():
+                items_to_remote_from_registry.append(item)
                 continue
 
-            if send_to_trash:
-                send2trash(file_to_delete.path)
-            else:
-                os.remove(file_to_delete.path)
+            # 1.2 Check lifecycle policy
+            policy = self.__policy_map.get(item.rule_name_applied, self.__default_policy)
 
-            self.__ordered_files_repository.delete(file_to_delete.name)
+            if policy and policy.enabled:
+                days_expired = (datetime.now().date() - item.ordered_date).days
 
-        # 2. Register the files which are not registered in the database
-        destination_paths = glob.glob(destination_path + "/**/*.*", recursive=True)
-        destination_path_files = [os.path.basename(file) for file in destination_paths]
+                if days_expired > policy.days_to_keep:
+                    if policy.action == 'trash':
+                        send2trash(item.path)
+                    elif policy.action == 'delete':
+                        if item_path.is_dir():
+                            shutil.rmtree(item.path) # Remove directory and its contents
+                        else:
+                            os.remove(item.path) # Remove file
 
-        not_registered_files: List[OrderedFile] = []
+                    items_deleted_count += 1
+                    items_to_remote_from_registry.append(item)
 
-        for file, file_path in zip(destination_path_files, destination_paths):
-            current_date = datetime.now().date()
 
-            if not self.__ordered_files_repository.find(file):
-                not_registered_files.append(OrderedFile(file, current_date, file_path))
+        # 2. Process unregistered items
+        not_registered_items = []
 
-        self.__ordered_files_repository.save_ordered_files(not_registered_files)
+        for physical_item_path in destination_path.rglob('*'):
+            if str(physical_item_path) not in registered_paths_map:
+                # 2.1 Determine rule name applied
+                try:
+                    rule_name = physical_item_path.relative_to(destination_path).parts[0]
+                except IndexError:
+                    rule_name = self.__default_folder_name
 
-        # 3. Send notification
-        if len(files_to_delete) > 0:
-            self.__notification_service.send_notification(f"{len(files_to_delete)} files were deleted.")
+                new_item = OrderedFile(
+                    name=physical_item_path.name,
+                    ordered_date=datetime.now().date(),
+                    path=str(physical_item_path),
+                    rule_name_applied=rule_name
+                )
+
+                not_registered_items.append(new_item)
+
+        # 3. Register unregistered items
+        if not_registered_items:
+            self.__ordered_files_repository.save_ordered_files(not_registered_items)
+
+        # 3.1 Remove deleted items from registry
+        if items_to_remote_from_registry:
+            for item in items_to_remote_from_registry:
+                self.__ordered_files_repository.delete(item)
+
+        # 4. Send notification
+        if items_deleted_count > 0:
+            self.__notification_service.send_notification(f"{items_deleted_count} items have been deleted")
