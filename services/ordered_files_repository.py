@@ -2,9 +2,11 @@ import datetime
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
-from entities.ordered_file import OrderedFile
+from models.app_config import AppConfig
+from models.models import OrderedFile
+from services.json_config_persister import JsonConfigPersister
 
 
 class OrderedFilesRepository(ABC):
@@ -21,7 +23,7 @@ class OrderedFilesRepository(ABC):
         pass
 
     @abstractmethod
-    def find(self, file_name: str) -> OrderedFile or None:
+    def find(self, file_name: str) -> Optional[OrderedFile]:
         pass
 
     @abstractmethod
@@ -78,7 +80,7 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
         with open(self.json_file_path, "w") as json_file:
             json_file.write(json.dumps(data, indent=4))
 
-    def find(self, file_name: str) -> OrderedFile or None:
+    def find(self, file_name: str) -> Optional[OrderedFile]:
         ordered_files = self.get_ordered_files()
 
         for ordered_file in ordered_files:
@@ -100,3 +102,41 @@ class JsonOrderedFilesRepository(OrderedFilesRepository):
 
         with open(self.json_file_path, "w") as json_file:
             json_file.write(json.dumps(data, indent=4))
+
+class ConfigOrderedFilesRepository(OrderedFilesRepository):
+    def __init__(self, config: AppConfig, persister: JsonConfigPersister):
+        self.__config = config
+        self.__persister = persister
+
+        self.__ordered_files = config.ordered_files
+
+    def get_ordered_files(self) -> List[OrderedFile]:
+        return self.__ordered_files
+
+    def save_ordered_files(self, new_ordered_files: List[OrderedFile]) -> None:
+        self.__ordered_files.extend(new_ordered_files)
+        self.__config.ordered_files = self.__ordered_files
+        self.__persister.save(self.__config)
+
+    def find(self, file_name: str) -> OrderedFile | None:
+        for ordered_file in self.__ordered_files:
+            if ordered_file.name == file_name:
+                return ordered_file
+        return None
+
+    def delete(self, file_name: str) -> None:
+        file_to_remove = self.find(file_name)
+        if file_to_remove:
+            self.__ordered_files.remove(file_to_remove)
+            self.__config.ordered_files = self.__ordered_files
+            self.__persister.save(self.__config)
+
+    def get_files_to_delete(self, days_to_keep: int) -> List[OrderedFile]:
+        files_to_delete = []
+        current_date = datetime.now().date()
+
+        for ordered_file in self.__ordered_files:
+            if (current_date - ordered_file.ordered_date).days > days_to_keep:
+                files_to_delete.append(ordered_file)
+
+        return files_to_delete

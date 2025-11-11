@@ -1,7 +1,8 @@
 import json
 from abc import ABC, abstractmethod
+from pathlib import Path
 
-from entities.path import Path
+from models.models import PathConfig
 
 
 class PathRepository(ABC):
@@ -31,3 +32,14 @@ class JsonPathRepository(PathRepository):
             source_path = json.load(json_file)["paths"]["destinationPath"]
 
             return Path(source_path)
+
+class ConfigPathRepository(PathRepository):
+
+    def __init__(self, path_config: PathConfig):
+        self.__config = path_config
+
+    def get_source_path(self) -> Path:
+        return self.__config.source_path
+
+    def get_destination_path(self) -> Path:
+        return self.__config.destination_path

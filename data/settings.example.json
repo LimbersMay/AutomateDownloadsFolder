@@ -1,21 +1,41 @@
 {
-    "settings": {
-        "daysToKeep": 2,
-        "sendToTrash": true,
-        "maxSizeInMb": 500
-    },
-    "orderedFiles": [],
     "paths": {
-        "sourcePath": "C:\\User\\Windows\\Downloads",
-        "destinationPath": "C:\\User\\Windows\\Downloads\\Organized"
+        "sourcePath": "C:\\Users\\LMayNasa\\Downloads",
+        "destinationPath": "C:\\Users\\LMayNasa\\Downloads\\Organized"
+    },
+    "settings": {
+        "maxSizeInMb": 5000
+    },
+    "defaultLifecycle": {
+        "enabled": true,
+        "action": "trash",
+        "daysToKeep": 2
     },
     "sortingRules": [
         {
-            "folderName": "Gemini",
+            "folderName": "TV\\Series",
             "matchBy": "regex",
             "patterns": [
-                ".*Gemini.*"
-            ]
+                ".*S\\d{2}E\\d{2}.*"
+            ],
+            "lifecycle": {
+                "enabled": false,
+                "action": "delete",
+                "daysToKeep": 30
+            }
+        },
+        {
+            "folderName": "TV\\Movies",
+            "matchBy": "regex",
+            "patterns": [
+                ".*(1080p|...).*\\d{4}.*",
+                ".*\\d{4}.*(1080p|...).*"
+            ],
+            "lifecycle": {
+                "enabled": false,
+                "action": "delete",
+                "daysToKeep": 30
+            }
         },
         {
             "folderName": "Word",
@@ -24,7 +44,8 @@
                 ".doc",
                 ".docx",
                 ".dot"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "PowerPoint",
@@ -34,7 +55,8 @@
                 ".pptx",
                 ".pps",
                 ".pot"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "Excel",
@@ -44,7 +66,8 @@
                 ".xlsx",
                 ".xlsm",
                 ".xlt"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "Video",
@@ -58,7 +81,8 @@
                 ".mkv",
                 ".wmv",
                 ".wpl"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "Image",
@@ -80,7 +104,8 @@
                 ".crw",
                 ".ai",
                 ".id"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "Audio",
@@ -96,7 +121,8 @@
                 ".ac3",
                 ".flac",
                 ".aym"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "Compressed",
@@ -109,25 +135,52 @@
                 ".ace",
                 ".gz",
                 ".tar.bz2"
-            ]
+            ],
+            "lifecycle": null
         },
         {
             "folderName": "PDF",
             "matchBy": "extension",
             "patterns": [
                 ".pdf"
-            ]
-        },
-        {
-            "folderName": "Gemini",
-            "matchBy": "extension",
-            "patterns": []
-        },
-        {
-            "folderName": "Other",
-            "matchBy": "extension",
-            "patterns": []
+            ],
+            "lifecycle": null
         }
     ],
-    "defaultFolder": "Other"
+    "defaultFolder": "Other",
+    "folderRules": [
+        {
+            "ruleName": "MoveSeries",
+            "matchBy": "regex",
+            "patterns": [
+                ".*S\\d{2}E\\d{2}.*"
+            ],
+            "action": "process_contents",
+            "deleteEmptyAfterProcessing": true,
+            "destinationFolder": "TV\\Series",
+            "lifecycle": {
+                "enabled": false,
+                "action": "trash",
+                "daysToKeep": 30
+            }
+        },
+        {
+            "ruleName": "MoveMovies",
+            "matchBy": "regex",
+            "patterns": [
+                ".*(1080p|...).*\\d{4}.*",
+                ".*\\d{4}.*(1080p|...).*"
+            ],
+            "action": "process_contents",
+            "deleteEmptyAfterProcessing": true,
+            "destinationFolder": "TV\\Movies",
+            "lifecycle": {
+                "enabled": false,
+                "action": "trash",
+                "daysToKeep": 30
+            }
+        }
+    ],
+    "defaultFolderAction": "ignore",
+    "orderedFiles": []
 }

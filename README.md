@@ -1,146 +1,242 @@
-
 # AutomateDownloadsFolder
-> A python script to automate the cleaning of the Downloads folder
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/LimbersMay/AutomateDownloadsFolder)](https://github.com/LimbersMay/AutomateDownloadsFolder/releases)
+
+> A Python script to automate your file organization with a powerful rules engine.
 
 ## Table of contents
-* [General info](#general-info)
+* [General Info](#general-info)
+* [Key Features (v3.0)](#key-features-v30)
 * [Technologies](#technologies)
 * [Prerequisites](#prerequisites)
 * [Setup](#setup)
 * [Usage](#usage)
-* [Settings](#settings)
-* [Future features](#future-features)
+* [Settings (v3.0)](#settings-v30)
+* [Future Features](#future-features)
 
 ## General Info
-This project is a python script to automate the cleaning of the Downloads folder or any other folder you want. 
-In my daily life, I downloaded a lot of files and my Downloads folder was always a mess,
-so I decided to start this project.
+This project is a Python script to automate the cleaning of your Downloads folder (or any other folder). In my daily life, I download a lot of files and my Downloads folder is always a mess, so I decided to start this project.
 
-This is not just a simple script, it has a lot of features and settings that you can customize, like:
-* Move files to folders based on clasification rules (extension or regex)
-* Create folders based on the folders found in sorting rules
-* Indicate how many days the files will be kept in the sorted folder before being deleted
-* Decide if you want to delete the files or send them to the trash
-* Set the maximum size of the files that will be moved
+This is not just a simple script; it's a powerful automation tool with customizable features:
+* Define sorting rules for **files** based on extension or regex.
+* **New in v3.0:** Define powerful rules for **folders** based on `glob` or `regex` patterns.
+* **New in v3.0:** Set custom lifecycle policies (delete or trash after X days) on a **per-rule basis**.
+* **New in v3.0:** Disable lifecycles for specific rules (e.g., keep movies forever).
+* Set a maximum file size to ignore large files.
+* Get desktop notifications when files are organized or cleaned up.
+
+## Key Features (v3.0)
+
+### 🚀 Folder Rules Engine
+Version 3.0 introduces a complete rules engine for **folders**. While file rules move individual files, folder rules act on the folders themselves.
+
+* **Match By:** Use simple `glob` patterns (`Project_*`) or complex `regex` (`.*S\d{2}E\d{2}.*`).
+* **Actions:**
+    * `move_folder`: Moves the entire folder (and its contents) to a new directory. Perfect for movies, series, or project backups.
+    * `process_contents`: Dives *into* the folder, moves all files to a specified directory, and then optionally deletes the now-empty source folder.
+    * `ignore`: Skips the folder entirely (e.g., for `node_modules`).
+
+### ⏱️ Per-Rule Lifecycles
+The global `daysToKeep` setting is gone. Now, you have fine-grained control over how long to keep items:
+* **`defaultLifecycle`:** Set a default policy for any file or folder that doesn't have a specific rule.
+* **Override Per Rule:** Add an optional `lifecycle` block to any file rule (`sortingRules`) or folder rule (`folderRules`) to give it a custom expiration.
+* **Disable Policy:** Keep items forever by adding `"lifecycle": { "enabled": false }` to the rule.
+
+### 🏗️ Pydantic Validation
+The entire `settings.json` file is now loaded and validated by Pydantic. This provides:
+* **Robust Error Handling:** The script will fail on launch with a clear error message if your `settings.json` is misconfigured.
+* **Automatic `camelCase`:** You can keep using `camelCase` (like `sourcePath`) in your JSON, and it will be automatically mapped to `snake_case` (like `source_path`) in Python.
 
 ## Technologies
 * Python 3.x
+* [Pydantic](https://docs.pydantic.dev/) - For robust data validation and settings management.
+* [Send2Trash](https://github.com/hsoft/send2trash) - For safely sending files to the system's trash bin.
+* [Plyer](https://github.com/kivy/plyer) - For cross-platform desktop notifications.
 
 ## Prerequisites
 * Python 3.x
 * pip
 
 ## Setup
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/LimbersMay/AutomateDownloadsFolder.git
-   ```
+1.  Clone the repository:
+    ```sh
+    git clone https://github.com/LimbersMay/AutomateDownloadsFolder.git
+    ```
 
-2. Create a virtual environment (recommended):
-   ```sh
-   python -m venv venv
-   ```
+2.  Navigate to the project directory:
+    ```sh
+    cd AutomateDownloadsFolder
+    ```
 
-3. Activate the virtual environment (Linux):
-   ```sh
-   source venv/bin/activate
-   ```
-   
+3.  Create a virtual environment (recommended):
+    ```sh
+    python -m venv venv
+    ```
+
+4.  Activate the virtual environment (Linux/macOS):
+    ```sh
+    source venv/bin/activate
+    ```
     Activate the virtual environment (Windows):
     ```sh
     venv\Scripts\activate
     ```
 
-4. Install the requirements:
-   ```sh
+5.  Install the requirements:
+    ```sh
     pip install -r requirements.txt
     ```
-   
-5. Rename the `settings.example.json` file to `settings.json` located in the `data` folder.
+
+6.  Rename the `settings.example.json` file to `settings.json` in the `data` folder and configure it (see [Settings](#settings-v30) below).
+
 ## Usage
-There are several ways to use this script, for example:
-* Run the script manually
-* Create a cron job
-* Start the script when the computer starts
+You can run the script manually, create a cron job, or start the script on boot.
 
-Here, I will show you how to start the script when the computer starts.
+### Run Manually
+```sh
+python main.py
+```
 
-### Linux
-1. Create a new systemd user service called `automate_downloads_folder.service` in the `/lib/systemd/user` directory:
-   ```sh
-   touch /lib/systemd/user/automate_downloads_folder.service
-   ```
-
-2. Open the file with your favorite text editor and paste the following code:
-   ```
-   [Unit]
-   Description=My Script
-   
-   [Service]
-   Type=simple
-   ExecStart=/usr/bin/python /home/limbers/Documents/PersonalProjects/automateDownloadsFolde>
-   WorkingDirectory=/home/limbers/Documents/PersonalProjects/automateDownloadsFolder
-   
-   [Install]
-   WantedBy=default.target
-    ```
-   
-3. Reload the systemd daemon:
-   ```sh
-   systemctl --user daemon-reload
-   ```
-   
-4. Enable the service:
-   ```sh
-    systemctl --user enable automate_downloads_folder.service
+### Autorun on Windows (via .exe)
+1.  Install PyInstaller:
+    ```sh
+    pip install pyinstaller
     ```
 
-Remember to change the `ExecStart` field to the path where the script is located.
-
-**Note:**
-If you are using a virtual environment,
-you must use the path to the python executable inside the virtual environment instead of `/usr/bin/python`.
-The path to the python executable inside the virtual environment is usually `/path/to/venv/bin/python`.
-
-### Windows
-For windows, the easiest way to start the script when the computer starts, is to create an exe of the 
-script and put a shortcut of the exe in the startup folder.
-
-To create an exe follow the steps below:
-1. Install pyinstaller:
-   ```sh
-   pip install pyinstaller
-   ```
-   
-2. Create the exe:
-   ```sh
-   pyinstaller --noconfirm --onefile --windowed --icon "./assets/work.ico" --hidden-import "plyer.platforms.win.notification"  "./main.py"
+2.  Create the executable:
+    ```sh
+    pyinstaller --noconfirm --onefile --windowed --icon "./assets/work.ico" --hidden-import "plyer.platforms.win.notification"  "./main.py"
     ```
-   
-3. Move the exe from the `dist` folder to the root folder (where the `main.py` file is located)
-4. Feel free to delete the `build` and `dist` folders and any other file created by pyinstaller
-5. Create a shortcut and copy it
-6. Press `Win + R` and type `shell:startup` to open the startup folder
-7. Paste the shortcut in the startup folder
-8. Restart the computer
 
-## Settings
-The settings are in the `settings.json` file, located in `data/settings.json`.
+3.  Move the `.exe` file from the `dist` folder to the root folder.
+4.  Press `Win + R` and type `shell:startup` to open the startup folder.
+5.  Create a shortcut to the `.exe` and paste it into the startup folder.
+6.  Restart your computer.
 
-These settings are:
-* `sortingRules`: List of rules that will be used to move the files to the sorted folder. Each rule has the following properties:
-  * `folderName`: Name of the folder where the files will be moved.
-  * `matchBy`: Property that indicates if the rule will match by `extension` or `regex`.
-  * `patterns`: List of extensions or regex patterns that will be used to match the files.
-* `daysToKeep`: Number of days that the files will be kept in the sorted folder before being deleted.
-* `sendToTrash`: If `true`, the files will be sent to the trash. If `false`, the files will be deleted from the system.
-* `maxSizeInMb`: Maximum size of the files that will be moved to the sorted folder.
-* `paths`: List of paths that will be used to search for files to be moved.
+### Autorun on Linux (via systemd)
+1.  Create a new systemd user service file:
+    ```sh
+    nano ~/.config/systemd/user/automate_downloads.service
+    ```
 
-Feel free to change the names of the extensions, 
-the program will create the folders with the names you put in the settings.
+2.  Paste the following configuration, **updating the paths** to match your system (especially `ExecStart` and `WorkingDirectory`):
+    ```ini
+    [Unit]
+    Description=Automate Downloads Folder Script
+    After=network.target
 
-## Future features
-* Make possible to have multiple source folders where the files will be searched.
-* Make possible to have multiple destination folders where the files will be moved.
-* Use sqlite3 to store all the data instead of using a json file. (The change from json to sqlite3 wouldn't be hard to do, because I used the repository pattern to separate the data layer from the business layer, so I just need to create a new repository that uses sqlite3 instead of json)
+    [Service]
+    Type=simple
+    # IMPORTANT: Use the Python executable INSIDE your venv
+    ExecStart=/home/YOUR_USER/projects/AutomateDownloadsFolder/venv/bin/python /home/YOUR_USER/projects/AutomateDownloadsFolder/main.py
+    WorkingDirectory=/home/YOUR_USER/projects/AutomateDownloadsFolder
+    Restart=on-failure
+
+    [Install]
+    WantedBy=default.target
+    ```
+
+3.  Reload the systemd daemon, enable, and start the service:
+    ```sh
+    systemctl --user daemon-reload
+    systemctl --user enable automate_downloads.service
+    systemctl --user start automate_downloads.service
+    ```
+
+## Settings (v3.0)
+The settings are defined in `data/settings.example.json`. The structure has been updated for v3.0.
+
+### Example `settings.example.json`
+```json
+{
+  "settings": {
+    "maxSizeInMb": 5000
+  },
+  "defaultLifecycle": {
+    "enabled": true,
+    "action": "trash",
+    "daysToKeep": 7
+  },
+  "paths": {
+    "sourcePath": "C:\\Users\\YourUser\\Downloads",
+    "destinationPath": "C:\\Users\\YourUser\\Downloads\\Organized"
+  },
+  "sortingRules": [
+    {
+      "folderName": "PDF",
+      "matchBy": "extension",
+      "patterns": [".pdf"]
+    }
+  ],
+  "defaultFolder": "Other",
+  "folderRules": [
+    {
+      "ruleName": "Move Series (SxxExx)",
+      "matchBy": "regex",
+      "patterns": [".*S\\d{2}E\\d{2}.*"],
+      "action": "move_folder",
+      "destinationFolder": "Videos/Series",
+      "lifecycle": {
+        "enabled": false
+      }
+    },
+    {
+      "ruleName": "Process Project Files",
+      "matchBy": "glob",
+      "patterns": ["Project_*"],
+      "action": "process_contents",
+      "destinationFolder": "School/Projects",
+      "deleteEmptyAfterProcessing": true,
+      "lifecycle": {
+        "enabled": true,
+        "action": "trash",
+        "daysToKeep": 30
+      }
+    },
+    {
+      "ruleName": "Ignore System Folders",
+      "matchBy": "glob",
+      "patterns": ["node_modules", ".git"],
+      "action": "ignore"
+    }
+  ],
+  "defaultFolderAction": "ignore",
+  "orderedFiles": []
+}
+```
+
+### Settings Explained
+
+* **`settings`**: Global script settings.
+    * `maxSizeInMb`: Files larger than this (in MB) will be ignored by the file sorter.
+* **`defaultLifecycle`**: The fallback policy for any file or folder that doesn't have a custom `lifecycle` block in its rule.
+    * `enabled`: `true` or `false`.
+    * `action`: `trash` (sends to system trash) or `delete` (permanent deletion).
+    * `daysToKeep`: Number of days to keep an item before the action is applied.
+* **`paths`**: Core directories.
+    * `sourcePath`: The folder to scan (e.g., your Downloads folder).
+    * `destinationPath`: The root folder where organized files/folders will be moved.
+* **`sortingRules` (For Files)**: A list of rules for individual files.
+    * `folderName`: The subfolder in `destinationPath` to move files to (e.g., "PDF").
+    * `matchBy`: `extension` or `regex`.
+    * `patterns`: A list of patterns to match (e.g., `[".pdf"]` or `[".*Gemini.*"]`).
+    * `lifecycle` (Optional): A policy block (see `defaultLifecycle`) to override the default for this rule.
+* **`defaultFolder`**: The folder name for files that don't match any `sortingRules`.
+* **`folderRules` (For Folders)**: A list of rules for folders found in `sourcePath`. Rules are processed in order.
+    * `ruleName`: A unique name for this rule (e.g., "Move Series"). This name is used for logging.
+    * `matchBy`: `glob` (for simple patterns like `Project_*`) or `regex` (for complex patterns).
+    * `patterns`: A list of patterns to match.
+    * `action`:
+        * `move_folder`: Moves the entire folder to `destinationFolder`.
+        * `process_contents`: Moves the folder's *contents* to `destinationFolder`.
+        * `ignore`: Skips this folder.
+    * `destinationFolder` (Optional): The subfolder in `destinationPath` to use for `move_folder` or `process_contents`.
+    * `deleteEmptyAfterProcessing` (Optional): If `true`, deletes the original folder after `process_contents` is complete.
+    * `lifecycle` (Optional): A policy block to apply to the item.
+* **`defaultFolderAction`**: The action (`move_folder`, `process_contents`, `ignore`) to apply to any folder that doesn't match a rule in `folderRules`. `ignore` is recommended for safety.
+* **`orderedFiles`**: The audit log. This is managed by the script.
+    * `rule_name_applied`: The "tag" that links an item to its `lifecycle` policy.
+
+## Future Features
+* Support for multiple source folders.
+* Support for multiple destination folders.
+* Migrate data persistence from JSON to SQLite. (This is made easier by the Repository Pattern already in place—just need to create a new repository implementation).
