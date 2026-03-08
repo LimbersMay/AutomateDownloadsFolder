@@ -64,8 +64,11 @@ class Auditor:
                 continue
 
             # 1.2 Check lifecycle policy
-            policy = next((rule.lifecycle for rule in self.__sorting_rules
+            try:
+                policy = next((rule.lifecycle for rule in self.__sorting_rules
                            if rule.rule_name == item.rule_name_applied))
+            except StopIteration as e:
+                policy = None
 
             if policy and policy.enabled:
                 days_expired = (datetime.now().date() - item.ordered_date).days
@@ -120,7 +123,7 @@ class Auditor:
                     name=physical_item_path.name,
                     ordered_date=datetime.now().date(),
                     path=str(physical_item_path),
-                    rule_name_applied=rule_name
+                    rule_name_applied=matching_rule.rule_name
                 )
 
                 not_registered_items.append(new_item)
