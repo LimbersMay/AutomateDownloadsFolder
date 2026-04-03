@@ -50,7 +50,8 @@ class SortingRule(CamelCaseModel):
     lifecycle: Optional[LifecyclePolicy] = None
     destination_folder: Optional[str] = None
     match_by: Literal['extension', 'regex', 'glob']
-    handlingStrategy: Literal['process_contents', 'move', 'ignore'] = 'move'
+    handling_strategy: Literal['process_contents', 'move', 'ignore'] = 'move'
+    search_scope: str
 
     """Defines """
     delete_empty_after_processing: bool = False

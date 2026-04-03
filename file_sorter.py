@@ -4,10 +4,12 @@ import os
 import pathlib
 import re
 import shutil
+from importlib.util import source_hash
 from typing import List, Optional
 
 from send2trash import send2trash
 
+from models.app_config import ZoneConfig
 from models.models import SortingRule, OrderedFile
 from services.ordered_files_repository import OrderedFilesRepository
 from services.path_repository import PathRepository
@@ -19,12 +21,14 @@ class FileSorter:
     def __init__(self, path_repository: PathRepository,
                  settings_repository: SettingsRepository,
                  ordered_files_repository: OrderedFilesRepository,
-                 notificator_service: NotificationService):
+                 notificator_service: NotificationService,
+                 zone_config: ZoneConfig):
 
         self.__path_repository = path_repository
         self.__settings_repository = settings_repository
         self.__ordered_files_repository = ordered_files_repository
         self.__notification_service = notificator_service
+        self.__zone_config = zone_config
 
         settings = settings_repository.get_settings()
 
@@ -51,26 +55,68 @@ class FileSorter:
 
         source_path = self.__path_repository.get_source_path()
         destination_path = self.__path_repository.get_destination_path()
-
         abs_destination_path = destination_path.resolve()
 
-        # 2. Iterate through items in the source path
-        for item in source_path.iterdir():
-            if self.__is_protected_path(item, abs_destination_path):
-                continue
+        for root, directories, files in os.walk(source_path):
+            root_path = pathlib.Path(root)
 
-            if item.is_file():
-                self.__process_file(item)
-            elif item.is_dir():
-                self.__process_folder(item)
+            # Check if we are in the root path
+            is_surface = (root_path == source_path)
 
-        # 3. Save newly tracked items
+            dirs_to_keep = []
+
+            for directory in directories:
+                directory_path = root_path / directory
+
+                # 1.1 Protect the destination path
+                if self.__is_protected_path(directory_path, abs_destination_path):
+                    continue
+
+                # 1.2 Find the matching rule for the directory
+                rule = self.__find_matching_rule(directory_path)
+
+                # If ignored, cut the tree
+                if rule and rule.handling_strategy == 'ignore':
+                    continue
+
+                is_recursive = rule and getattr(rule, 'search_scope', 'surface') == 'recursive'
+
+                # 1.3 If is a folder we must process
+                if rule and (is_surface or is_recursive):
+                    self.__process_folder(directory_path, rule)
+
+                    if rule.handling_strategy in ['move', 'process_contents']:
+                        continue
+
+                # 1.4 If the folder is clean we keep it
+                dirs_to_keep.append(directory)
+
+            directories[:] = dirs_to_keep
+
+            for file in files:
+                file_path = root_path / file
+
+                if self.__is_protected_path(file_path, abs_destination_path):
+                    continue
+
+                rule = self.__find_matching_rule(file_path)
+
+                if not rule or rule.handling_strategy == 'ignore':
+                    continue
+
+                is_recursive = rule and getattr(rule, 'search_scope', 'surface') == 'recursive'
+
+                if is_surface or is_recursive:
+                    self.__process_file(file_path, rule)
+
         if self.__newly_tracked_items:
             self.__ordered_files_repository.save_ordered_files(self.__newly_tracked_items)
-            self.__notification_service.send_notification(f"{len(self.__newly_tracked_items)} files were sorted")
+            self.__notification_service.send_notification(f"{len(self.__newly_tracked_items)} files were sorted from {self.__zone_config.zone_name} zone")
 
         if self.__untracked_items_counter > 0:
-            self.__notification_service.send_notification(f"{self.__untracked_items_counter} items were moved but not tracked")
+            self.__notification_service.send_notification(
+                f"{self.__untracked_items_counter} items were moved but not tracked from {self.__zone_config.zone_name} zone")
+
 
     def __is_protected_path(self, item_path: pathlib.Path, protected_path: pathlib.Path) -> bool:
         """
@@ -99,7 +145,7 @@ class FileSorter:
             print(f"Error checking protected path for {item_path}: {e}")
             return False
 
-    def __process_file(self, file_path: pathlib.Path):
+    def __process_file(self, file_path: pathlib.Path, rule: Optional[SortingRule] = None):
         """
         Process a single file: determine its destination folder, move it, and track it.
         1. Check the file size.
@@ -120,15 +166,11 @@ class FileSorter:
         if file_path.stat().st_size >= (self.__size_limit * 1024 * 1024):
             return
 
-        # 3. Find destination folder and rule
-        item_rule = self.__find_matching_rule(file_path.name)
-
         # 3.1 Check if handling strategy is ignore
-        if item_rule and item_rule.handlingStrategy == 'ignore':
+        if not rule or rule.handling_strategy == 'ignore':
             return
 
-
-        destination_folder_name = item_rule.destination_folder
+        destination_folder_name = rule.destination_folder
 
         # 4. Create destination path and move file
         destination_folder_path = self.__destination_path / destination_folder_name
@@ -139,7 +181,7 @@ class FileSorter:
             shutil.move(str(file_path), str(final_file_path))
 
             # 5. Track the moved file if lifecycle is enabled
-            has_active_lifecycle = item_rule and item_rule.lifecycle and item_rule.lifecycle.enabled
+            has_active_lifecycle = rule and rule.lifecycle and rule.lifecycle.enabled
 
             if not has_active_lifecycle:
                 self.__untracked_items_counter += 1
@@ -149,7 +191,7 @@ class FileSorter:
                 name=file_path.name,
                 ordered_date=datetime.datetime.now().date(),
                 path=str(final_file_path),
-                rule_name_applied=item_rule.rule_name,
+                rule_name_applied=rule.rule_name,
             )
 
             self.__newly_tracked_items.append(items_to_track)
@@ -157,9 +199,14 @@ class FileSorter:
         except Exception as e:
             print(f"Error moving file {file_path} to {final_file_path}: {e}")
 
-    def __process_folder(self, folder_path: pathlib.Path):
-        rule = self.__find_matching_rule(folder_path.name)
-        action = rule.handlingStrategy
+    def __process_folder(self, folder_path: pathlib.Path, rule: Optional[SortingRule] = None):
+        if not folder_path.exists():
+            return
+
+        if not rule:
+            return
+
+        action = rule.handling_strategy
 
         if action == 'ignore':
             return
@@ -172,8 +219,9 @@ class FileSorter:
 
             # 2. Process each file in the folder
             for sub_item in folder_path.rglob('*'):
+                sub_rule = self.__find_matching_rule(sub_item)
                 if sub_item.is_file():
-                    self.__process_file(sub_item)
+                    self.__process_file(sub_item, sub_rule)
 
             # 3. Delete the empty folder if specified
             if rule and rule.delete_empty_after_processing:
@@ -207,11 +255,12 @@ class FileSorter:
             except Exception as e:
                 print(f"Error moving folder {folder_path} to {final_destination_path}: {e}")
 
-    def __find_matching_rule(self, item_name: str) -> Optional[SortingRule]:
+    def __find_matching_rule(self, item_path: pathlib.Path) -> Optional[SortingRule]:
         """"
         Find the first sorting rule that matches the given item name.
         """
-
+        item_name = item_path.name
+        source_path = self.__path_repository.get_source_path()
         for rule in self.__sorting_rules:
             if rule.match_by == "extension":
                 _, extension = os.path.splitext(item_name)
@@ -222,7 +271,16 @@ class FileSorter:
                     if re.match(pattern, item_name):
                         return rule
             elif rule.match_by == "glob":
+                # Try to calculate relative path to support patterns like "**/temp/*.pdf"
+                try:
+                    rel_path_str = item_path.relative_to(source_path).as_posix()
+                except ValueError:
+                    rel_path_str = item_name
+
                 for pattern in rule.patterns:
-                    if fnmatch.fnmatch(item_name, pattern):
+                    if item_path.match(pattern):
+                        return rule
+
+                    if fnmatch.fnmatch(item_name, pattern) or fnmatch.fnmatch(rel_path_str, pattern):
                         return rule
         return None

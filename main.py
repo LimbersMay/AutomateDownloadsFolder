@@ -32,12 +32,12 @@ def main():
         directory_creator.execute()
 
         # 2. Check the files
-        auditor = Auditor(path_repository, ordered_files_repository, settings_repository, notification_service)
+        auditor = Auditor(path_repository, ordered_files_repository, settings_repository, notification_service, zone_config)
         auditor.check_files()
 
         # 3. Sort the files
         file_organizer = FileSorter(path_repository, settings_repository, ordered_files_repository,
-                                    notification_service)
+                                    notification_service, zone_config)
         file_organizer.sort()
 
 

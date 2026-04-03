@@ -7,6 +7,7 @@ from typing import List
 
 from send2trash import send2trash
 
+from models.app_config import ZoneConfig
 from models.models import OrderedFile, SortingRule
 from services.ordered_files_repository import OrderedFilesRepository
 from services.path_repository import PathRepository
@@ -18,11 +19,13 @@ class Auditor:
     def __init__(self, path_repository: PathRepository,
                  ordered_files_repository: OrderedFilesRepository,
                  settings_repository: SettingsRepository,
-                 notificator_service: NotificationService):
+                 notificator_service: NotificationService,
+                 zone_config: ZoneConfig):
         self.__path_repository = path_repository
         self.__ordered_files_repository = ordered_files_repository
         self.__settings_repository = settings_repository
         self.__notification_service = notificator_service
+        self.__zone_config = zone_config
 
         self.__build_policy_map()
 
@@ -139,4 +142,4 @@ class Auditor:
 
         # 4. Send notification
         if items_deleted_count > 0:
-            self.__notification_service.send_notification(f"{items_deleted_count} items have been deleted")
+            self.__notification_service.send_notification(f"{items_deleted_count} items have been deleted from {self.__zone_config.zone_name} zone")
